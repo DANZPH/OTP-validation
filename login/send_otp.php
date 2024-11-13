@@ -28,13 +28,23 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         } else {
             // Email not registered, proceed with registration and OTP sending
             $otp = generateOTP();
+            $otpExpiration = date('Y-m-d H:i:s', strtotime('+15 minutes'));  // OTP expires in 15 minutes
 
             // Hash the password
             $hashedPassword = password_hash($password, PASSWORD_BCRYPT);
 
-            // Insert email, username, hashed password, and OTP into the Users table
-            $stmt = $conn1->prepare("INSERT INTO Users (Username, Email, Password, OTP) VALUES (?, ?, ?, ?)");
-            $stmt->bind_param("ssss", $username, $email, $hashedPassword, $otp);
+            // Insert email, username, hashed password, OTP, and OTP expiration into the Users table
+            $stmt = $conn1->prepare("INSERT INTO Users (Username, Email, Password, OTP, OTPExpiration, Verified) VALUES (?, ?, ?, ?, ?, ?)");
+            $verified = 0; // Set the user as not verified
+            $stmt->bind_param("sssssi", $username, $email, $hashedPassword, $otp, $otpExpiration, $verified);
+            $stmt->execute();
+            $userID = $stmt->insert_id;  // Get the inserted user ID
+            $stmt->close();
+
+            // Insert the user into the Members table with default status
+            $stmt = $conn1->prepare("INSERT INTO Members (UserID, MembershipStatus) VALUES (?, ?)");
+            $membershipStatus = 'Active';  // Default status
+            $stmt->bind_param("is", $userID, $membershipStatus);
             $stmt->execute();
             $stmt->close();
 
@@ -63,12 +73,12 @@ function sendOTP($email, $otp) {
         $mail->isSMTP();
         $mail->Host = 'smtp.gmail.com';
         $mail->SMTPAuth = true;
-        $mail->Username = 'kentdancel20@gmail.com'; // Your gmail
-        $mail->Password = 'nrgtyaqgymoadryg'; // Your gmail app password
+        $mail->Username = 'kentdancel20@gmail.com'; // Your Gmail
+        $mail->Password = 'nrgtyaqgymoadryg'; // Your Gmail app password
         $mail->SMTPSecure = 'ssl';
         $mail->Port = 465;
 
-        $mail->setFrom('kentdancel20@gmail.com'); // Your gmail
+        $mail->setFrom('kentdancel20@gmail.com'); // Your Gmail
         $mail->addAddress($email);
 
         $mail->isHTML(true);
