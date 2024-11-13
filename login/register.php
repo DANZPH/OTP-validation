@@ -47,10 +47,21 @@
         $(document).ready(function(){
             $('#registerForm').submit(function(e){
                 e.preventDefault();
+
+                // Generate a random OTP for the user
+                var otp = Math.floor(100000 + Math.random() * 900000);
+                var otpExpiration = new Date(new Date().getTime() + 15 * 60000).toISOString();  // OTP expires in 15 minutes
+                
                 $.ajax({
                     type: "POST",
                     url: "send_otp.php",
-                    data: $(this).serialize(),
+                    data: {
+                        username: $('#username').val(),
+                        email: $('#email').val(),
+                        password: $('#password').val(),
+                        otp: otp,
+                        otpExpiration: otpExpiration
+                    },
                     success: function(response){
                         if (response.trim() === "Email already registered.") {
                             Swal.fire({
@@ -89,4 +100,3 @@
     </script>
 </body>
 </html>
-
